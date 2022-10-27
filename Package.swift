@@ -43,6 +43,10 @@ let package = Package(
             name: "TuistGenerator",
             targets: ["TuistGenerator"]
         ),
+        .library(
+            name: "TuistKit",
+            targets: ["TuistKit"]
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/tuist/XcodeProj.git", from: "8.8.0"),
