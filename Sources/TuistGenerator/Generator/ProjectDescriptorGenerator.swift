@@ -157,10 +157,10 @@ final class ProjectDescriptorGenerator: ProjectDescriptorGenerating {
         groups: ProjectGroups,
         pbxproj: PBXProj
     ) throws -> PBXProject {
-        let defaultRegions = ["en", "Base"]
+        let defaultRegions = project.defaultRegions ?? ["en", "Base"]
         let knownRegions = Set(defaultRegions + projectFileElements.knownRegions).sorted()
         let developmentRegion = project.developmentRegion ?? Xcode.Default.developmentRegion
-        let attributes = generateAttributes(project: project)
+        let attributes = generateAttributes(project: project)   
         let pbxProject = PBXProject(
             name: project.name,
             buildConfigurationList: configurationList,

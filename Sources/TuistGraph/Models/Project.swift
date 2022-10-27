@@ -19,6 +19,9 @@ public struct Project: Hashable, Equatable, CustomStringConvertible, CustomDebug
 
     /// Organization name.
     public let organizationName: String?
+    
+    /// Default region
+    public let defaultRegions: [String]?
 
     /// Development region code e.g. `en`.
     public let developmentRegion: String?
@@ -80,6 +83,7 @@ public struct Project: Hashable, Equatable, CustomStringConvertible, CustomDebug
         xcodeProjPath: AbsolutePath,
         name: String,
         organizationName: String?,
+        defaultRegions: [String]?,
         developmentRegion: String?,
         options: Options,
         settings: Settings,
@@ -98,6 +102,7 @@ public struct Project: Hashable, Equatable, CustomStringConvertible, CustomDebug
         self.xcodeProjPath = xcodeProjPath
         self.name = name
         self.organizationName = organizationName
+        self.defaultRegions = defaultRegions
         self.developmentRegion = developmentRegion
         self.options = options
         self.targets = targets
@@ -141,6 +146,7 @@ public struct Project: Hashable, Equatable, CustomStringConvertible, CustomDebug
             xcodeProjPath: xcodeProjPath,
             name: name,
             organizationName: organizationName,
+            defaultRegions: defaultRegions,
             developmentRegion: developmentRegion,
             options: options,
             settings: settings,
@@ -165,6 +171,7 @@ public struct Project: Hashable, Equatable, CustomStringConvertible, CustomDebug
             xcodeProjPath: xcodeProjPath,
             name: name,
             organizationName: organizationName,
+            defaultRegions: defaultRegions,
             developmentRegion: developmentRegion,
             options: options,
             settings: settings,
