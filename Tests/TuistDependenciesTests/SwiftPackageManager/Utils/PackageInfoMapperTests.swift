@@ -663,6 +663,44 @@ final class PackageInfoMapperTests: TuistUnitTestCase {
             )
         )
     }
+    
+    func testMap_whenTestTarget() throws {
+        let basePath = try temporaryPath()
+        let sourcesPath1 = basePath.appending(RelativePath("Package/Sources/Target1"))
+        let sourcesPath2 = basePath.appending(RelativePath("Package/Sources/Target2"))
+        try fileHandler.createFolder(sourcesPath1)
+        try fileHandler.createFolder(sourcesPath2)
+
+        let project = try subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .init(
+                    products: [
+                        .init(name: "Product1", type: .library(.automatic), targets: ["Target1"]),
+                    ],
+                    targets: [
+                        .test(name: "Target1"),
+                        .test(name: "Target2", type: .test),
+                    ],
+                    platforms: [],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ]
+        )
+        XCTAssertEqual(
+            project,
+            .testWithDefaultConfigs(
+                name: "Package",
+                targets: [
+                    .test("Target1", basePath: basePath),
+                    .test("Target2", basePath: basePath)
+                ]
+            )
+        )
+    }
 
     func testMap_whenTargetIsNotRegular_ignoresTarget() throws {
         let basePath = try temporaryPath()
@@ -699,6 +737,7 @@ final class PackageInfoMapperTests: TuistUnitTestCase {
                 name: "Package",
                 targets: [
                     .test("Target1", basePath: basePath),
+                    .test("Target2", basePath: basePath)
                 ]
             )
         )
@@ -1481,7 +1520,7 @@ final class PackageInfoMapperTests: TuistUnitTestCase {
 
         XCTAssertEqual(project?.name, expected.name)
 
-        // Need to sort targets of projects, because internall a set is used to generate targets for different platforms
+        // Need to sort targets of projects, because internally a set is used to generate targets for different platforms
         // That could lead to mixed orders
         let projectTargets = project!.targets.sorted(by: \.name)
         let expectedTargets = expected.targets.sorted(by: \.name)
