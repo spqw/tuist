@@ -10,7 +10,10 @@ import TuistSupport
 
 enum PackageInfoMapperError: FatalError, Equatable {
     /// Thrown when the default path folder is not present.
-    case defaultPathNotFound(AbsolutePath, String)
+    case defaultPathNotFoundForTarget(AbsolutePath, String)
+    
+    /// Thrown when the default path folder is not present.
+    case defaultPathNotFoundForTestTarget(AbsolutePath, String)
 
     /// Thrown when the parsing of minimum deployment target failed.
     case minDeploymentTargetParsingFailed(ProjectDescription.Platform)
@@ -51,7 +54,7 @@ enum PackageInfoMapperError: FatalError, Equatable {
         case .noSupportedPlatforms, .unknownByNameDependency, .unknownPlatform, .unknownProductDependency, .unknownProductTarget,
              .modulemapMissing:
             return .abort
-        case .minDeploymentTargetParsingFailed, .defaultPathNotFound, .unsupportedSetting, .missingBinaryArtifact:
+        case .minDeploymentTargetParsingFailed, .defaultPathNotFoundForTarget, .defaultPathNotFoundForTestTarget, .unsupportedSetting, .missingBinaryArtifact:
             return .bug
         }
     }
@@ -59,10 +62,15 @@ enum PackageInfoMapperError: FatalError, Equatable {
     /// Error description.
     var description: String {
         switch self {
-        case let .defaultPathNotFound(packageFolder, targetName):
+        case let .defaultPathNotFoundForTarget(packageFolder, targetName):
             return """
             Default source path not found for target \(targetName) in package at \(packageFolder.pathString). \
             Source path must be one of \(PackageInfoMapper.predefinedSourceDirectories.map { "\($0)/\(targetName)" })
+            """
+        case let .defaultPathNotFoundForTestTarget(packageFolder, targetName):
+            return """
+            Default test path not found for target \(targetName) in package at \(packageFolder.pathString). \
+            Test path must be one of \(PackageInfoMapper.predefinedTestDirectories.map { "\($0)/\(targetName)"})
             """
         case let .minDeploymentTargetParsingFailed(platform):
             return "The minimum deployment target for \(platform) platform cannot be parsed."
@@ -152,9 +160,11 @@ public final class PackageInfoMapper: PackageInfoMapping {
         let targetToModuleMap: [String: ModuleMap]
     }
 
-    // Predefined source directories, in order of preference.
+    // Predefined source and tests directories, in order of preference.
     // https://github.com/apple/swift-package-manager/blob/751f0b2a00276be2c21c074f4b21d952eaabb93b/Sources/PackageLoading/PackageBuilder.swift#L488
     fileprivate static let predefinedSourceDirectories = ["Sources", "Source", "src", "srcs"]
+    fileprivate static let predefinedTestDirectories = ["Tests", "Sources", "Source", "src", "srcs"]
+    
     fileprivate let moduleMapGenerator: SwiftPackageManagerModuleMapGenerating
 
     public init(moduleMapGenerator: SwiftPackageManagerModuleMapGenerating = SwiftPackageManagerModuleMapGenerator()) {
@@ -303,6 +313,11 @@ public final class PackageInfoMapper: PackageInfoMapping {
 
                     result[target.name] = ModuleMap.custom(moduleMapPath)
                 case .regular:
+                    result[target.name] = try moduleMapGenerator.generate(
+                        moduleName: target.name,
+                        publicHeadersPath: target.publicHeadersPath(packageFolder: packageToFolder[packageInfo.key]!)
+                    )
+                case .test:
                     result[target.name] = try moduleMapGenerator.generate(
                         moduleName: target.name,
                         publicHeadersPath: target.publicHeadersPath(packageFolder: packageToFolder[packageInfo.key]!)
@@ -1219,10 +1234,17 @@ extension PackageInfo.Target {
             let firstMatchingPath = PackageInfoMapper.predefinedSourceDirectories
                 .map { packageFolder.appending(components: [$0, name]) }
                 .first(where: { FileHandler.shared.exists($0) })
-            guard let mainPath = firstMatchingPath else {
-                throw PackageInfoMapperError.defaultPathNotFound(packageFolder, name)
+            if let mainPath = firstMatchingPath {
+                return mainPath
+            } else {
+                let firstMatchingPathTestTarget = PackageInfoMapper.predefinedTestDirectories
+                    .map { packageFolder.appending(components: [$0, name]) }
+                    .first(where: { FileHandler.shared.exists($0) })
+                guard let mainPath = firstMatchingPathTestTarget else {
+                    throw PackageInfoMapperError.defaultPathNotFoundForTestTarget(packageFolder, name)
+                }
+                return mainPath
             }
-            return mainPath
         }
     }
 
